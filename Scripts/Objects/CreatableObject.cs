@@ -199,6 +199,8 @@ public class CreatableObject : VRTK_InteractableObject
     #endregion
 
     #region Triggers
+    // Below is not active. Code left for example only
+    /*
     public virtual void OnTriggerEnter(Collider collider)
     {
         if ((collider.CompareTag("MainCamera") || collider.CompareTag("Animal")) && isFood)
@@ -211,5 +213,6 @@ public class CreatableObject : VRTK_InteractableObject
             Destroy(gameObject);
         }
     }
+    */
     #endregion
 }
