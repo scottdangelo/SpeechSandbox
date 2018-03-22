@@ -30,9 +30,7 @@ public class SwipeListener : MonoBehaviour {
 
     public event SwipeEventHandler SwipedLeft;
     public event SwipeEventHandler SwipedRight;
-    public event SwipeEventHandler SwipedUp;
-    public event SwipeEventHandler SwipedDown;
-
+    
     // Use this for initialization
     void Start () {
 
