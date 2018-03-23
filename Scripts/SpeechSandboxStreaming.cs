@@ -41,18 +41,18 @@ public class SpeechSandboxStreaming : MonoBehaviour
     private SpeechToText _speechToText;
     private Conversation _conversation;
 
-    private string stt_username = "a7cbb1e7-3e91-4fb4-af03-d847c9bf7b81";
-    private string stt_password = "o68crlhkVpIo";
+    private string stt_username = "";
+    private string stt_password = "";
     // Change stt_url if different from below
     private string stt_url = "https://stream.watsonplatform.net/speech-to-text/api";
      
-    private string convo_username = "8f008f82-1746-440f-b7c1-baf1146f7fa3";
-    private string convo_password = "ywwDe87mDbjg";
+    private string convo_username = "";
+    private string convo_password = "";
     // Change convo_url if different from below
     private string convo_url = "https://gateway.watsonplatform.net/conversation/api";
     // Change  _conversationVersionDate if different from below
     private string _conversationVersionDate = "2017-05-26";
-    private string convo_workspaceId = "81f56986-24b1-4fa8-9ab5-f01660e16a0d";
+    private string convo_workspaceId = "";
 
     public Text ResultsField;
 
