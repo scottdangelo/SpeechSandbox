@@ -29,32 +29,14 @@ using IBM.Watson.DeveloperCloud.Connection;
 
 public class SpeechSandboxStreaming : MonoBehaviour
 {
-  
+
     public GameManager gameManager;
     public AudioClip sorryClip;
-    public List<AudioClip> helpClips; 
-    
-   
+    public SaveCredentials saveCredentials;
+    public List<AudioClip> helpClips;
 
     [SerializeField]
     private fsSerializer _serializer = new fsSerializer();
-    private SpeechToText _speechToText;
-    private Conversation _conversation;
-
-    private string stt_username = "";
-    private string stt_password = "";
-    // Change stt_url if different from below
-    private string stt_url = "https://stream.watsonplatform.net/speech-to-text/api";
-     
-    private string convo_username = "";
-    private string convo_password = "";
-    // Change convo_url if different from below
-    private string convo_url = "https://gateway.watsonplatform.net/conversation/api";
-    // Change  _conversationVersionDate if different from below
-    private string _conversationVersionDate = "2017-05-26";
-    private string convo_workspaceId = "";
-
-    public Text ResultsField;
 
     private int _recordingRoutine = 0;
     private string _microphoneID = null;
@@ -62,21 +44,80 @@ public class SpeechSandboxStreaming : MonoBehaviour
     private int _recordingBufferSize = 1;
     private int _recordingHZ = 22050;
 
-   
+    private SpeechToText _speechToText;
+    private Conversation _conversation;
+
+    private IEnumerator createServices(){
+
+        Credentials stt_credentials = null;
+        //  Create credential and instantiate service
+        if (!string.IsNullOrEmpty(saveCredentials.speechToTextUsername) && !string.IsNullOrEmpty(saveCredentials.speechToTextPassword))
+        {
+            //  Authenticate using username and password
+            stt_credentials = new Credentials(saveCredentials.speechToTextUsername, saveCredentials.speechToTextPassword, saveCredentials.speechToTextServiceUrl);
+        }
+        else if (!string.IsNullOrEmpty(saveCredentials.speechToTextIamApikey))
+        {
+            //  Authenticate using iamApikey
+            TokenOptions tokenOptions = new TokenOptions()
+            {
+                IamApiKey = saveCredentials.speechToTextIamApikey,
+                IamUrl = saveCredentials.speechToTextIamUrl
+            };
+
+            stt_credentials = new Credentials(tokenOptions, saveCredentials.speechToTextServiceUrl);
+
+            while (!stt_credentials.HasIamTokenData())
+                yield return null;
+        }
+        else
+        {
+            throw new WatsonException("Please provide either username and password or IAM apikey to authenticate the service.");
+        }
+
+        Credentials asst_credentials = null;
+        //  Create credential and instantiate service
+        if (!string.IsNullOrEmpty(saveCredentials.assistantUsername) && !string.IsNullOrEmpty(saveCredentials.assitantPassword))
+        {
+            //  Authenticate using username and password
+            asst_credentials = new Credentials(saveCredentials.assistantUsername, saveCredentials.assitantPassword, saveCredentials.assistantServiceUrl);
+        }
+        else if (!string.IsNullOrEmpty(saveCredentials.assistantIamApikey))
+        {
+            //  Authenticate using iamApikey
+            TokenOptions tokenOptions = new TokenOptions()
+            {
+                IamApiKey = saveCredentials.assistantIamApikey,
+                IamUrl = saveCredentials.assistantIamUrl
+            };
+
+            asst_credentials = new Credentials(tokenOptions, saveCredentials.assistantServiceUrl);
+
+            while (!asst_credentials.HasIamTokenData())
+                yield return null;
+        }
+        else
+        {
+            throw new WatsonException("Please provide either username and password or IAM apikey to authenticate the service.");
+        }
+
+
+        _speechToText = new SpeechToText(stt_credentials);
+        _conversation = new Conversation(asst_credentials);
+
+        _conversation.VersionDate = saveCredentials.assistantVersionDate;
+        Active = true;
+
+        StartRecording();
+    }
+
     void Start()
     {
         LogSystem.InstallDefaultReactors();
 
+        saveCredentials.Load();
         //  Create credential and instantiate service
-        Credentials stt_credentials = new Credentials(stt_username, stt_password, stt_url);
-        Credentials convo_credentials = new Credentials(convo_username, convo_password, convo_url);
-
-        _speechToText = new SpeechToText(stt_credentials);
-        _conversation = new Conversation(convo_credentials);
-        _conversation.VersionDate = _conversationVersionDate;
-        Active = true;
-
-        StartRecording();
+        Runnable.Run(createServices());
     }
 
     public bool Active
@@ -183,7 +224,7 @@ public class SpeechSandboxStreaming : MonoBehaviour
             }
             else
             {
-                // calculate the number of samples remaining until we ready for a block of audio, 
+                // calculate the number of samples remaining until we ready for a block of audio,
                 // and wait that amount of time it will take to record.
                 int remaining = bFirstBlock ? (midPoint - writePos) : (_recording.samples - writePos);
                 float timeRemaining = (float)remaining / (float)_recordingHZ;
@@ -196,7 +237,7 @@ public class SpeechSandboxStreaming : MonoBehaviour
         yield break;
     }
 
-    private void OnRecognize(SpeechRecognitionEvent result)
+    private void OnRecognize(SpeechRecognitionEvent result, Dictionary<string, object> customData = null)
     {
         if (result != null && result.results.Length > 0)
         {
@@ -208,7 +249,7 @@ public class SpeechSandboxStreaming : MonoBehaviour
                     {
                         string text = alt.transcript;
                         Debug.Log("Result: " + text + " Confidence: " + alt.confidence);
-                        _conversation.Message(OnMessage, OnFail, convo_workspaceId, text);
+                        _conversation.Message(OnMessage, OnFail, saveCredentials.assistantWorkspaceId, text);
                     }
                 }
 
@@ -308,7 +349,7 @@ public class SpeechSandboxStreaming : MonoBehaviour
         }
     }
 
-    private void OnRecognizeSpeaker(SpeakerRecognitionEvent result)
+    private void OnRecognizeSpeaker(SpeakerRecognitionEvent result, Dictionary<string, object> customData = null)
     {
         if (result != null)
         {
