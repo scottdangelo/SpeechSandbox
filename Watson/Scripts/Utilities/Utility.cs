@@ -1157,15 +1157,15 @@ namespace IBM.Watson.DeveloperCloud.Utilities
         #endregion
 
         #region Get Token
-        private const string TokenRestEndpoint = "https://gateway.watsonplatform.net/authorization/api/v1/token";
-        private const string TokenStreamEndpoint = "https://stream.watsonplatform.net/authorization/api/v1/token";
+        private const string WatsonTokenRestEndpoint = "https://gateway.watsonplatform.net/authorization/api/v1/token";
+        private const string WatsonTokenStreamEndpoint = "https://stream.watsonplatform.net/authorization/api/v1/token";
 
         /// <summary>
         /// The OnGetToken callback.
         /// </summary>
         /// <param name="authenticationToken">The authentication token object.</param>
         /// <param name="data">User defined custom data.</param>
-        public delegate void OnGetToken(AuthenticationToken authenticationToken, string data);
+        public delegate void OnGetWatsonToken(AuthenticationToken authenticationToken, string data);
 
         /// <summary>
         /// Gets a token to authenticate serivce calls instead of using username and password.
@@ -1176,8 +1176,9 @@ namespace IBM.Watson.DeveloperCloud.Utilities
         /// <param name="password">The service password.</param>
         /// <param name="tokenName">A user defined name for the token.</param>
         /// <returns>True if the call succeeds.</returns>
-        public static bool GetToken(OnGetToken callback, string serviceEndpoint, string username, string password, string tokenName = "")
+        public static bool GetWatsonToken(OnGetWatsonToken callback, string serviceEndpoint, string username, string password, string tokenName = "")
         {
+            Log.Warning("Utility.GetWatsonToken()", "Authenticating with the `X-Watson-Authorization-Token` header is deprecated. The token continues to work with Cloud Foundry services, but is not supported for services that use Identity and Access Management (IAM) authentication. For details see [Authenticating with IAM tokens](https://console.bluemix.net/docs/services/watson/getting-started-iam.html#iam) or the README in the IBM Watson SDK you use.");
             if (callback == null)
                 throw new ArgumentNullException("callback");
             if (string.IsNullOrEmpty(serviceEndpoint))
@@ -1189,9 +1190,9 @@ namespace IBM.Watson.DeveloperCloud.Utilities
 
             string tokenEndpoint;
             if (serviceEndpoint.Contains("stream"))
-                tokenEndpoint = TokenStreamEndpoint;
+                tokenEndpoint = WatsonTokenStreamEndpoint;
             else
-                tokenEndpoint = TokenRestEndpoint;
+                tokenEndpoint = WatsonTokenRestEndpoint;
 
             Credentials Credentials = new Credentials()
             {
@@ -1203,15 +1204,15 @@ namespace IBM.Watson.DeveloperCloud.Utilities
             if (connector == null)
                 return false;
 
-            GetTokenReq req = new GetTokenReq();
+            GetWatsonTokenReq req = new GetWatsonTokenReq();
             req.Callback = callback;
-            req.OnResponse = OnGetTokenResp;
+            req.OnResponse = OnGetWatsonTokenResp;
             req.TokenName = tokenName;
 
             return connector.Send(req);
         }
 
-        private class GetTokenReq : RESTConnector.Request
+        private class GetWatsonTokenReq : RESTConnector.Request
         {
             /// <summary>
             /// Custom data.
@@ -1220,14 +1221,14 @@ namespace IBM.Watson.DeveloperCloud.Utilities
             /// <summary>
             /// OnGetToken callback delegate
             /// </summary>
-            public OnGetToken Callback { get; set; }
+            public OnGetWatsonToken Callback { get; set; }
             /// <summary>
             /// User defined service name to keep track of authentication tokens.
             /// </summary>
             public string TokenName { get; set; }
         }
 
-        private static void OnGetTokenResp(RESTConnector.Request req, RESTConnector.Response resp)
+        private static void OnGetWatsonTokenResp(RESTConnector.Request req, RESTConnector.Response resp)
         {
             AuthenticationToken authenticationToken = new AuthenticationToken();
             string token = "";
@@ -1238,7 +1239,7 @@ namespace IBM.Watson.DeveloperCloud.Utilities
                 {
                     authenticationToken.Token = token = Encoding.UTF8.GetString(resp.Data);
                     authenticationToken.Created = DateTime.Now;
-                    authenticationToken.ServiceName = ((GetTokenReq)req).TokenName;
+                    authenticationToken.ServiceName = ((GetWatsonTokenReq)req).TokenName;
                 }
                 catch (Exception e)
                 {
@@ -1247,9 +1248,9 @@ namespace IBM.Watson.DeveloperCloud.Utilities
                 }
             }
 
-            string customData = ((GetTokenReq)req).Data;
-            if (((GetTokenReq)req).Callback != null)
-                ((GetTokenReq)req).Callback(resp.Success ? authenticationToken : null, string.IsNullOrEmpty(customData) ? token : customData);
+            string customData = ((GetWatsonTokenReq)req).Data;
+            if (((GetWatsonTokenReq)req).Callback != null)
+                ((GetWatsonTokenReq)req).Callback(resp.Success ? authenticationToken : null, string.IsNullOrEmpty(customData) ? token : customData);
         }
         #endregion
 
@@ -1306,7 +1307,7 @@ namespace IBM.Watson.DeveloperCloud.Utilities
         }
     }
 
-    public class SimpleGet: IDisposable
+    public class SimpleGet : IDisposable
     {
         public string Result { get; set; }
         public bool IsComplete { get; set; }
@@ -1314,11 +1315,12 @@ namespace IBM.Watson.DeveloperCloud.Utilities
         private string _url = null;
         private string _username = null;
         private string _password = null;
+        private string _token = null;
         private bool _disposed = false;
 
-        public SimpleGet(string url, string username = null, string password = null)
+        public SimpleGet(string url, string username = null, string password = null, string token = null)
         {
-			IsComplete = false;
+            IsComplete = false;
 
             if (string.IsNullOrEmpty(url))
                 throw new ArgumentNullException("url is required for SimpleGet()");
@@ -1328,6 +1330,8 @@ namespace IBM.Watson.DeveloperCloud.Utilities
                 _username = username;
             if (!string.IsNullOrEmpty(password))
                 _password = password;
+            if (!string.IsNullOrEmpty(token))
+                _token = token;
 
             Runnable.Run(GetRequest());
         }
@@ -1339,19 +1343,33 @@ namespace IBM.Watson.DeveloperCloud.Utilities
 
             using (UnityWebRequest unityWebRequest = UnityWebRequest.Get(_url))
             {
-                string authorization = Utility.CreateAuthorization(_username, _password);
-                unityWebRequest.SetRequestHeader("Authorization", authorization);
+                string authorization = null;
 
-				#if UNITY_5_6 || UNITY_2017_1
-				yield return unityWebRequest.Send();
-				#else
+                if(!string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
+                {
+                    authorization = Utility.CreateAuthorization(_username, _password);
+                }
+                else if(!string.IsNullOrEmpty(_token))
+                {
+                    authorization = _token;
+                }
+                
+                if(!string.IsNullOrEmpty(authorization))
+                    unityWebRequest.SetRequestHeader("Authorization", authorization);
+
+                unityWebRequest.SetRequestHeader("Accept", "application/vnd.github.v3.raw");
+
+#if UNITY_5_6 || UNITY_2017_1
+                yield return unityWebRequest.Send();
+#else
                 yield return unityWebRequest.SendWebRequest();
-				#endif
-				#if UNITY_2017_1_OR_NEWER
+#endif
+
+#if UNITY_2017_1_OR_NEWER
                 if (unityWebRequest.isNetworkError || unityWebRequest.isHttpError)
-				#else
-				if (unityWebRequest.isError)
-				#endif
+#else
+                if (unityWebRequest.isError)
+#endif
                 {
                     Log.Debug("SimpleGet.GetRequest()", "Error with get request: {0}", unityWebRequest.error);
                 }

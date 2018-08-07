@@ -85,9 +85,14 @@ namespace IBM.Watson.DeveloperCloud.Services.ToneAnalyzer.v3
         #region Constructor
         public ToneAnalyzer(Credentials credentials)
         {
-            if (credentials.HasCredentials() || credentials.HasAuthorizationToken())
+            if (credentials.HasCredentials() || credentials.HasWatsonAuthenticationToken() || credentials.HasIamTokenData())
             {
                 Credentials = credentials;
+
+                if (string.IsNullOrEmpty(credentials.Url))
+                {
+                    credentials.Url = Url;
+                }
             }
             else
             {
@@ -122,7 +127,7 @@ namespace IBM.Watson.DeveloperCloud.Services.ToneAnalyzer.v3
         /// <param name="failCallback">The fail callback.</param>
         /// <param name="text">Text.</param>
         /// <param name="data">Data.</param>
-        public bool GetToneAnalyze(SuccessCallback<ToneAnalyzerResponse> successCallback, FailCallback failCallback, string text, Dictionary<string, object> customData = null)
+        public bool GetToneAnalyze(SuccessCallback<ToneAnalysis> successCallback, FailCallback failCallback, string text, Dictionary<string, object> customData = null)
         {
             if (successCallback == null)
                 throw new ArgumentNullException("successCallback");
@@ -137,6 +142,13 @@ namespace IBM.Watson.DeveloperCloud.Services.ToneAnalyzer.v3
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if(req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach(KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.OnResponse = GetToneAnalyzerResponse;
 
             Dictionary<string, string> upload = new Dictionary<string, string>();
@@ -153,7 +165,7 @@ namespace IBM.Watson.DeveloperCloud.Services.ToneAnalyzer.v3
             /// <summary>
             /// The success callback.
             /// </summary>
-            public SuccessCallback<ToneAnalyzerResponse> SuccessCallback { get; set; }
+            public SuccessCallback<ToneAnalysis> SuccessCallback { get; set; }
             /// <summary>
             /// The fail callback.
             /// </summary>
@@ -166,9 +178,10 @@ namespace IBM.Watson.DeveloperCloud.Services.ToneAnalyzer.v3
 
         private void GetToneAnalyzerResponse(RESTConnector.Request req, RESTConnector.Response resp)
         {
-            ToneAnalyzerResponse result = new ToneAnalyzerResponse();
+            ToneAnalysis result = new ToneAnalysis();
             fsData data = null;
             Dictionary<string, object> customData = ((GetToneAnalyzerRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {

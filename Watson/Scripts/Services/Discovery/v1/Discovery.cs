@@ -51,6 +51,8 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
         private const string Documents = "/v1/environments/{0}/collections/{1}/documents";
         private const string Document = "/v1/environments/{0}/collections/{1}/documents/{2}";
         private const string QueryCollection = "/v1/environments/{0}/collections/{1}/query";
+        private const string CredentialsEndpoint = "/v1/environments/{0}/credentials";
+        private const string CredentialEndpoint = "/v1/environments/{0}/credentials/{1}";
         #endregion
 
         #region Public Properties
@@ -102,9 +104,14 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
         /// <param name="credentials">The service credentials.</param>
         public Discovery(Credentials credentials)
         {
-            if (credentials.HasCredentials() || credentials.HasAuthorizationToken())
+            if (credentials.HasCredentials() || credentials.HasWatsonAuthenticationToken() || credentials.HasIamTokenData())
             {
                 Credentials = credentials;
+
+                if (string.IsNullOrEmpty(credentials.Url))
+                {
+                    credentials.Url = Url;
+                }
             }
             else
             {
@@ -150,6 +157,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnGetEnvironmentsResponse;
 
@@ -181,6 +195,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             GetEnvironmentsResponse result = new GetEnvironmentsResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((GetEnvironmentsRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -264,6 +279,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnAddEnvironmentResponse;
             req.Headers["Content-Type"] = "application/json";
@@ -299,6 +321,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             Environment result = new Environment();
             fsData data = null;
             Dictionary<string, object> customData = ((AddEnvironmentRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -357,6 +380,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnGetEnvironmentResponse;
 
@@ -388,6 +418,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             Environment result = new Environment();
             fsData data = null;
             Dictionary<string, object> customData = ((GetEnvironmentRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -446,6 +477,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnDeleteEnvironmentResponse;
             req.Delete = true;
@@ -478,6 +516,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             DeleteEnvironmentResponse result = new DeleteEnvironmentResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((DeleteEnvironmentRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -537,6 +576,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             if (!string.IsNullOrEmpty(name))
             {
@@ -572,6 +618,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             GetConfigurationsResponse result = new GetConfigurationsResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((GetConfigurationsRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -615,10 +662,10 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
         /// <param name="successCallback">The success callback.</param>
         /// <param name="failCallback">The fail callback.</param>
         /// <param name="environmentID">The environment identifier.</param>
-        /// <param name="configurationJsonPath">The path to the configuration json file.</param>
+        /// <param name="configJson">The configuration json.</param>
         /// <param name="customData">Optional custom data.</param>
         /// <returns>True if the call succeeds, false if the call is unsuccessful.</returns>
-        public bool AddConfiguration(SuccessCallback<Configuration> successCallback, FailCallback failCallback, string environmentID, string configurationJsonPath, Dictionary<string, object> customData = null)
+        public bool AddConfiguration(SuccessCallback<Configuration> successCallback, FailCallback failCallback, string environmentID, string configJson, Dictionary<string, object> customData = null)
         {
             if (successCallback == null)
                 throw new ArgumentNullException("successCallback");
@@ -626,14 +673,14 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
                 throw new ArgumentNullException("failCallback");
             if (string.IsNullOrEmpty(environmentID))
                 throw new ArgumentNullException("environmentID");
-            if (string.IsNullOrEmpty(configurationJsonPath))
+            if (string.IsNullOrEmpty(configJson))
                 throw new ArgumentNullException("configurationJsonPath");
 
             byte[] configJsonData;
 
             try
             {
-                configJsonData = Encoding.UTF8.GetBytes(File.ReadAllText(configurationJsonPath));
+                configJsonData = Encoding.UTF8.GetBytes(configJson);
             }
             catch (Exception e)
             {
@@ -667,6 +714,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnAddConfigurationResponse;
             req.Headers["Content-Type"] = "application/json";
@@ -701,6 +755,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             Configuration result = new Configuration();
             fsData data = null;
             Dictionary<string, object> customData = ((AddConfigurationRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -762,6 +817,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnGetConfigurationResponse;
 
@@ -793,6 +855,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             Configuration result = new Configuration();
             fsData data = null;
             Dictionary<string, object> customData = ((GetConfigurationRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -854,6 +917,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnDeleteConfigurationResponse;
             req.Delete = true;
@@ -886,6 +956,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             DeleteConfigurationResponse result = new DeleteConfigurationResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((DeleteConfigurationRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1015,6 +1086,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnPreviewConfigurationResponse;
 
@@ -1070,6 +1148,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             TestDocument result = new TestDocument();
             fsData data = null;
             Dictionary<string, object> customData = ((PreviewConfigurationRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1130,6 +1209,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             if (!string.IsNullOrEmpty(name))
             {
@@ -1165,6 +1251,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             GetCollectionsResponse result = new GetCollectionsResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((GetCollectionsRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1256,6 +1343,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnAddCollectionResponse;
             req.Headers["Content-Type"] = "application/json";
@@ -1290,6 +1384,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             CollectionRef result = new CollectionRef();
             fsData data = null;
             Dictionary<string, object> customData = ((AddCollectionRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1351,6 +1446,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnGetCollectionResponse;
 
@@ -1382,6 +1484,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             Collection result = new Collection();
             fsData data = null;
             Dictionary<string, object> customData = ((GetCollectionRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1443,6 +1546,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnDeleteCollectionResponse;
             req.Delete = true;
@@ -1475,6 +1585,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             DeleteCollectionResponse result = new DeleteCollectionResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((DeleteCollectionRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1536,6 +1647,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnGetFieldsResponse;
 
@@ -1567,6 +1685,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             GetFieldsResponse result = new GetFieldsResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((GetFieldsRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1801,6 +1920,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnAddDocumentResponse;
 
@@ -1844,6 +1970,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             DocumentAccepted result = new DocumentAccepted();
             fsData data = null;
             Dictionary<string, object> customData = ((AddDocumentRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -1908,6 +2035,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnDeleteDocumentResponse;
             req.Delete = true;
@@ -1940,6 +2074,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             DeleteDocumentResponse result = new DeleteDocumentResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((DeleteDocumentRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -2004,6 +2139,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnGetDocumentResponse;
 
@@ -2035,6 +2177,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             DocumentStatus result = new DocumentStatus();
             fsData data = null;
             Dictionary<string, object> customData = ((GetDocumentRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -2263,6 +2406,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
             req.Parameters["version"] = VersionDate;
             req.OnResponse = OnUpdateDocumentResponse;
 
@@ -2306,6 +2456,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             DocumentAccepted result = new DocumentAccepted();
             fsData data = null;
             Dictionary<string, object> customData = ((UpdateDocumentRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -2382,6 +2533,13 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             req.SuccessCallback = successCallback;
             req.FailCallback = failCallback;
             req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
 
             if (!string.IsNullOrEmpty(filter))
                 req.Parameters["filter"] = filter;
@@ -2428,6 +2586,7 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
             QueryResponse result = new QueryResponse();
             fsData data = null;
             Dictionary<string, object> customData = ((QueryRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
 
             if (resp.Success)
             {
@@ -2462,6 +2621,527 @@ namespace IBM.Watson.DeveloperCloud.Services.Discovery.v1
                     ((QueryRequest)req).FailCallback(resp.Error, customData);
             }
         }
+        #endregion
+
+        #region Delete User Data
+        /// <summary>
+        /// Deletes all data associated with a specified customer ID. The method has no effect if no data is associated with the customer ID. 
+        /// You associate a customer ID with data by passing the X-Watson-Metadata header with a request that passes data. 
+        /// For more information about personal data and customer IDs, see [**Information security**](https://console.bluemix.net/docs/services/discovery/information-security.html).
+        /// </summary>
+        /// <param name="successCallback">The function that is called when the operation is successful.</param>
+        /// <param name="failCallback">The function that is called when the operation fails.</param>
+        /// <param name="customerId">The customer ID for which all data is to be deleted.</param>
+        /// <returns><see cref="object" />object</returns>
+        /// <param name="customData">A Dictionary<string, object> of data that will be passed to the callback. The raw json output from the REST call will be passed in this object as the value of the 'json' key.</string></param>
+        public bool DeleteUserData(SuccessCallback<object> successCallback, FailCallback failCallback, string customerId, Dictionary<string, object> customData = null)
+        {
+            if (successCallback == null)
+                throw new ArgumentNullException("successCallback");
+            if (failCallback == null)
+                throw new ArgumentNullException("failCallback");
+            if (string.IsNullOrEmpty(customerId))
+                throw new ArgumentNullException("customerId");
+
+            DeleteUserDataRequestObj req = new DeleteUserDataRequestObj();
+            req.SuccessCallback = successCallback;
+            req.FailCallback = failCallback;
+            req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
+            req.Parameters["customer_id"] = customerId;
+            req.Parameters["version"] = VersionDate;
+            req.Delete = true;
+
+            req.OnResponse = OnDeleteUserDataResponse;
+
+            RESTConnector connector = RESTConnector.GetConnector(Credentials, "/v1/user_data");
+            if (connector == null)
+                return false;
+
+            return connector.Send(req);
+        }
+
+        private class DeleteUserDataRequestObj : RESTConnector.Request
+        {
+            /// <summary>
+            /// The success callback.
+            /// </summary>
+            public SuccessCallback<object> SuccessCallback { get; set; }
+            /// <summary>
+            /// The fail callback.
+            /// </summary>
+            public FailCallback FailCallback { get; set; }
+            /// <summary>
+            /// Custom data.
+            /// </summary>
+            public Dictionary<string, object> CustomData { get; set; }
+        }
+
+        private void OnDeleteUserDataResponse(RESTConnector.Request req, RESTConnector.Response resp)
+        {
+            object result = new object();
+            fsData data = null;
+            Dictionary<string, object> customData = ((DeleteUserDataRequestObj)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
+
+            if (resp.Success)
+            {
+                try
+                {
+                    fsResult r = fsJsonParser.Parse(Encoding.UTF8.GetString(resp.Data), out data);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    object obj = result;
+                    r = _serializer.TryDeserialize(data, obj.GetType(), ref obj);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    customData.Add("json", data);
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Discovery.OnDeleteUserDataResponse()", "Exception: {0}", e.ToString());
+                    resp.Success = false;
+                }
+            }
+
+            if (resp.Success)
+            {
+                if (((DeleteUserDataRequestObj)req).SuccessCallback != null)
+                    ((DeleteUserDataRequestObj)req).SuccessCallback(result, customData);
+            }
+            else
+            {
+                if (((DeleteUserDataRequestObj)req).FailCallback != null)
+                    ((DeleteUserDataRequestObj)req).FailCallback(resp.Error, customData);
+            }
+        }
+        #endregion
+
+        #region Credentials
+        #region List Credentials
+        /// <summary>
+        /// List all the source credentials that have been created for this service instance.
+        /// Note: All credentials are sent over an encrypted connection and encrypted at rest.
+        /// </summary>
+        /// <param name="successCallback">The success callback.</param>
+        /// <param name="failCallback">The fail callback.</param>
+        /// <param name="customData">Optional custom data.</param>
+        /// <returns>True if the call succeeds, false if the call is unsuccessful.</returns>
+        public bool ListCredentials(SuccessCallback<CredentialsList> successCallback, FailCallback failCallback, string environmentId, Dictionary<string, object> customData = null)
+        {
+            if (successCallback == null)
+                throw new ArgumentNullException("successCallback");
+            if (failCallback == null)
+                throw new ArgumentNullException("failCallback");
+            if (string.IsNullOrEmpty(environmentId))
+                throw new ArgumentException("environmentId");
+
+            ListCredentialsRequest req = new ListCredentialsRequest();
+            req.SuccessCallback = successCallback;
+            req.FailCallback = failCallback;
+            req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            req.Headers["Content-Type"] = "application/json";
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
+            req.Parameters["version"] = VersionDate;
+            req.OnResponse = OnListCredentialsResponse;
+
+            RESTConnector connector = RESTConnector.GetConnector(Credentials, string.Format(CredentialsEndpoint, environmentId));
+            if (connector == null)
+                return false;
+
+            return connector.Send(req);
+        }
+
+        private class ListCredentialsRequest : RESTConnector.Request
+        {
+            /// <summary>
+            /// The success callback.
+            /// </summary>
+            public SuccessCallback<CredentialsList> SuccessCallback { get; set; }
+            /// <summary>
+            /// The fail callback.
+            /// </summary>
+            public FailCallback FailCallback { get; set; }
+            /// <summary>
+            /// Custom data.
+            /// </summary>
+            public Dictionary<string, object> CustomData { get; set; }
+        }
+
+        private void OnListCredentialsResponse(RESTConnector.Request req, RESTConnector.Response resp)
+        {
+            CredentialsList result = new CredentialsList();
+            fsData data = null;
+            Dictionary<string, object> customData = ((ListCredentialsRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
+
+            if (resp.Success)
+            {
+                try
+                {
+                    fsResult r = fsJsonParser.Parse(Encoding.UTF8.GetString(resp.Data), out data);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    object obj = result;
+                    r = _serializer.TryDeserialize(data, obj.GetType(), ref obj);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    customData.Add("json", data);
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Discovery.OnListCredentialsResponse()", "Exception: {0}", e.ToString());
+                    resp.Success = false;
+                }
+            }
+
+            if (resp.Success)
+            {
+                if (((ListCredentialsRequest)req).SuccessCallback != null)
+                    ((ListCredentialsRequest)req).SuccessCallback(result, customData);
+            }
+            else
+            {
+                if (((ListCredentialsRequest)req).FailCallback != null)
+                    ((ListCredentialsRequest)req).FailCallback(resp.Error, customData);
+            }
+        }
+        #endregion
+
+        #region CreateCredentials
+        /// <summary>
+        /// Create credentials.
+        ///
+        /// Creates a set of credentials to connect to a remote source. Created credentials are used in a configuration
+        /// to associate a collection with the remote source.
+        ///
+        /// **Note:** All credentials are sent over an encrypted connection and encrypted at rest.
+        /// </summary>
+        /// <param name="successCallback">The function that is called when the operation is successful.</param>
+        /// <param name="failCallback">The function that is called when the operation fails.</param>
+        /// <param name="environmentId">The ID of the environment.</param>
+        /// <param name="credentialsParameter">An object that defines an individual set of source credentials.</param>
+        /// <param name="customData">A Dictionary<string, object> of data that will be passed to the callback. The raw json output from the REST call will be passed in this object as the value of the 'json' key.</string></param>
+        /// <returns><see cref="Credentials" />Credentials</returns>
+        public bool CreateCredentials(SuccessCallback<SourceCredentials> successCallback, FailCallback failCallback, string environmentId, SourceCredentials credentialsParameter, Dictionary<string, object> customData = null)
+        {
+            if (successCallback == null)
+                throw new ArgumentNullException("successCallback");
+            if (failCallback == null)
+                throw new ArgumentNullException("failCallback");
+            if (string.IsNullOrEmpty(environmentId))
+                throw new ArgumentNullException("environmentId");
+            if (credentialsParameter == null)
+                throw new ArgumentNullException("credentialsParameter");
+
+            CreateCredentialsRequest req = new CreateCredentialsRequest();
+            req.SuccessCallback = successCallback;
+            req.FailCallback = failCallback;
+            req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
+            req.Parameters["version"] = VersionDate;
+            req.Headers["Content-Type"] = "application/json";
+            fsData data = null;
+            _serializer.TrySerialize(credentialsParameter, out data);
+            string json = data.ToString().Replace('\"', '"');
+            req.Send = Encoding.UTF8.GetBytes(json);
+            req.OnResponse = OnCreateCredentialsResponse;
+
+            RESTConnector connector = RESTConnector.GetConnector(Credentials, string.Format(CredentialsEndpoint, environmentId));
+            if (connector == null)
+                return false;
+
+            return connector.Send(req);
+        }
+
+        private class CreateCredentialsRequest : RESTConnector.Request
+        {
+            /// <summary>
+            /// The success callback.
+            /// </summary>
+            public SuccessCallback<SourceCredentials> SuccessCallback { get; set; }
+            /// <summary>
+            /// The fail callback.
+            /// </summary>
+            public FailCallback FailCallback { get; set; }
+            /// <summary>
+            /// Custom data.
+            /// </summary>
+            public Dictionary<string, object> CustomData { get; set; }
+        }
+
+        private void OnCreateCredentialsResponse(RESTConnector.Request req, RESTConnector.Response resp)
+        {
+            SourceCredentials result = new SourceCredentials();
+            fsData data = null;
+            Dictionary<string, object> customData = ((CreateCredentialsRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
+
+            if (resp.Success)
+            {
+                try
+                {
+                    fsResult r = fsJsonParser.Parse(Encoding.UTF8.GetString(resp.Data), out data);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    object obj = result;
+                    r = _serializer.TryDeserialize(data, obj.GetType(), ref obj);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Assistant.OnCreateCredentialsResponse()", "Exception: {0}", e.ToString());
+                    resp.Success = false;
+                }
+            }
+
+            customData.Add("json", data);
+
+            if (resp.Success)
+            {
+                if (((CreateCredentialsRequest)req).SuccessCallback != null)
+                    ((CreateCredentialsRequest)req).SuccessCallback(result, customData);
+            }
+            else
+            {
+                if (((CreateCredentialsRequest)req).FailCallback != null)
+                    ((CreateCredentialsRequest)req).FailCallback(resp.Error, customData);
+            }
+        }
+        #endregion
+
+        #region Delete Credentials
+        /// <summary>
+        /// Delete credentials.
+        ///
+        /// Deletes a set of stored credentials from your Discovery instance.
+        /// </summary>
+        /// <param name="successCallback">The success callback.</param>
+        /// <param name="failCallback">The fail callback.</param>
+        /// <param name="environmentId">The ID of the environment.</param>
+        /// <param name="credentialId">The unique identifier for a set of source credentials.</param>
+        /// <param name="customData">Custom data object to pass data including custom request headers.</param>
+        /// <returns><see cref="DeleteCredentials" />DeleteCredentials</returns>
+        public bool DeleteCredentials(SuccessCallback<DeleteCredentials> successCallback, FailCallback failCallback, string environmentID, string credentialId, Dictionary<string, object> customData = null)
+        {
+            if (successCallback == null)
+                throw new ArgumentNullException("successCallback");
+            if (failCallback == null)
+                throw new ArgumentNullException("failCallback");
+            if (string.IsNullOrEmpty(environmentID))
+                throw new ArgumentNullException("environmentID");
+            if (string.IsNullOrEmpty(credentialId))
+                throw new ArgumentNullException("credentialId");
+
+            DeleteCredentialsRequest req = new DeleteCredentialsRequest();
+            req.SuccessCallback = successCallback;
+            req.FailCallback = failCallback;
+            req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
+            req.Parameters["version"] = VersionDate;
+            req.OnResponse = OnDeleteCredentialsResponse;
+            req.Delete = true;
+
+            RESTConnector connector = RESTConnector.GetConnector(Credentials, string.Format(CredentialEndpoint, environmentID, credentialId));
+            if (connector == null)
+                return false;
+
+            return connector.Send(req);
+        }
+
+        private class DeleteCredentialsRequest : RESTConnector.Request
+        {
+            /// <summary>
+            /// The success callback.
+            /// </summary>
+            public SuccessCallback<DeleteCredentials> SuccessCallback { get; set; }
+            /// <summary>
+            /// The fail callback.
+            /// </summary>
+            public FailCallback FailCallback { get; set; }
+            /// <summary>
+            /// Custom data.
+            /// </summary>
+            public Dictionary<string, object> CustomData { get; set; }
+        }
+
+        private void OnDeleteCredentialsResponse(RESTConnector.Request req, RESTConnector.Response resp)
+        {
+            DeleteCredentials result = new DeleteCredentials();
+            fsData data = null;
+            Dictionary<string, object> customData = ((DeleteCredentialsRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
+
+            if (resp.Success)
+            {
+                try
+                {
+                    fsResult r = fsJsonParser.Parse(Encoding.UTF8.GetString(resp.Data), out data);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    object obj = result;
+                    r = _serializer.TryDeserialize(data, obj.GetType(), ref obj);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    customData.Add("json", data);
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Discovery.OnDeleteCredentialsResponse()", "OnDeleteCredentialsResponse Exception: {0}", e.ToString());
+                    resp.Success = false;
+                }
+            }
+
+            if (resp.Success)
+            {
+                if (((DeleteCredentialsRequest)req).SuccessCallback != null)
+                    ((DeleteCredentialsRequest)req).SuccessCallback(result, customData);
+            }
+            else
+            {
+                if (((DeleteCredentialsRequest)req).FailCallback != null)
+                    ((DeleteCredentialsRequest)req).FailCallback(resp.Error, customData);
+            }
+        }
+        #endregion
+
+        #region GetCredential
+        /// <summary>
+        /// View Credentials.
+        ///
+        /// Returns details about the specified credentials.
+        ///
+        ///  **Note:** Secure credential information such as a password or SSH key is never returned and must be
+        /// obtained from the source system.
+        /// </summary>
+        /// <param name="successCallback">The success callback.</param>
+        /// <param name="failCallback">The fail callback.</param>
+        /// <param name="environmentId">The ID of the environment.</param>
+        /// <param name="credentialId">The unique identifier for a set of source credentials.</param>
+        /// <param name="customData">Custom data object to pass data including custom request headers.</param>
+        /// <returns><see cref="Credentials" />Credentials</returns>
+        public bool GetCredential(SuccessCallback<SourceCredentials> successCallback, FailCallback failCallback, string environmentID, string credentialId, Dictionary<string, object> customData = null)
+        {
+            if (successCallback == null)
+                throw new ArgumentNullException("successCallback");
+            if (failCallback == null)
+                throw new ArgumentNullException("failCallback");
+            if (string.IsNullOrEmpty(environmentID))
+                throw new ArgumentNullException("environmentID");
+            if (string.IsNullOrEmpty(credentialId))
+                throw new ArgumentNullException("credentialId");
+
+            GetCredentialRequest req = new GetCredentialRequest();
+            req.SuccessCallback = successCallback;
+            req.FailCallback = failCallback;
+            req.CustomData = customData == null ? new Dictionary<string, object>() : customData;
+            req.Headers["Content-Type"] = "application/json";
+            if (req.CustomData.ContainsKey(Constants.String.CUSTOM_REQUEST_HEADERS))
+            {
+                foreach (KeyValuePair<string, string> kvp in req.CustomData[Constants.String.CUSTOM_REQUEST_HEADERS] as Dictionary<string, string>)
+                {
+                    req.Headers.Add(kvp.Key, kvp.Value);
+                }
+            }
+            req.Parameters["version"] = VersionDate;
+            req.OnResponse = OnGetCredentialResponse;
+
+            RESTConnector connector = RESTConnector.GetConnector(Credentials, string.Format(CredentialEndpoint, environmentID, credentialId));
+            if (connector == null)
+                return false;
+
+            return connector.Send(req);
+        }
+
+        private class GetCredentialRequest : RESTConnector.Request
+        {
+            /// <summary>
+            /// The success callback.
+            /// </summary>
+            public SuccessCallback<SourceCredentials> SuccessCallback { get; set; }
+            /// <summary>
+            /// The fail callback.
+            /// </summary>
+            public FailCallback FailCallback { get; set; }
+            /// <summary>
+            /// Custom data.
+            /// </summary>
+            public Dictionary<string, object> CustomData { get; set; }
+        }
+
+        private void OnGetCredentialResponse(RESTConnector.Request req, RESTConnector.Response resp)
+        {
+            SourceCredentials result = new SourceCredentials();
+            fsData data = null;
+            Dictionary<string, object> customData = ((GetCredentialRequest)req).CustomData;
+            customData.Add(Constants.String.RESPONSE_HEADERS, resp.Headers);
+
+            if (resp.Success)
+            {
+                try
+                {
+                    fsResult r = fsJsonParser.Parse(Encoding.UTF8.GetString(resp.Data), out data);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    object obj = result;
+                    r = _serializer.TryDeserialize(data, obj.GetType(), ref obj);
+                    if (!r.Succeeded)
+                        throw new WatsonException(r.FormattedMessages);
+
+                    customData.Add("json", data);
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Discovery.OnGetCredentialResponse()", "OnGetCredentialResponse Exception: {0}", e.ToString());
+                    resp.Success = false;
+                }
+            }
+
+            if (resp.Success)
+            {
+                if (((GetCredentialRequest)req).SuccessCallback != null)
+                    ((GetCredentialRequest)req).SuccessCallback(result, customData);
+            }
+            else
+            {
+                if (((GetCredentialRequest)req).FailCallback != null)
+                    ((GetCredentialRequest)req).FailCallback(resp.Error, customData);
+            }
+        }
+        #endregion
         #endregion
 
         #region IWatsonService Interface
