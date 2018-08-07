@@ -25,14 +25,21 @@ using UnityEngine;
 
 public class ExampleGetToken : MonoBehaviour
 {
-    private string _username = null;
-    private string _password = null;
-    private string _url = null;
-    private string _workspaceId = null;
+    #region PLEASE SET THESE VARIABLES IN THE INSPECTOR
+    [SerializeField]
+    private string _conversationUsername;
+    [SerializeField]
+    private string _conversationPassword;
+    [SerializeField]
+    private string _conversationUrl;
+    [SerializeField]
+    private string _conversationWorkspaceId;
+    [SerializeField]
+    private string _conversationVersionDate;
+    #endregion
 
     private AuthenticationToken _authenticationToken;
     private bool _receivedAuthToken = false;
-    private string _conversationVersionDate = "2017-05-26";
 
     void Start ()
     {
@@ -43,7 +50,7 @@ public class ExampleGetToken : MonoBehaviour
     private IEnumerator Example()
     {
         //  Get token
-        if (!Utility.GetToken(OnGetToken, _url, _username, _password))
+        if (!Utility.GetWatsonToken(OnGetWatsonToken, _conversationUrl, _conversationUsername, _conversationPassword))
             Log.Debug("ExampleGetToken.GetToken()", "Failed to get token.");
 
         while (!_receivedAuthToken)
@@ -53,14 +60,14 @@ public class ExampleGetToken : MonoBehaviour
         Message();
     }
 
-    private void OnGetToken(AuthenticationToken authenticationToken, string customData)
+    private void OnGetWatsonToken(AuthenticationToken authenticationToken, string customData)
     {
         _authenticationToken = authenticationToken;
         Log.Debug("ExampleGetToken.OnGetToken()", "created: {0} | time to expiration: {1} minutes | token: {2}", _authenticationToken.Created, _authenticationToken.TimeUntilExpiration, _authenticationToken.Token);
         _receivedAuthToken = true;
     }
 
-    private IEnumerator GetTokenTimeRemaining(float time)
+    private IEnumerator GetWatsonTokenTimeRemaining(float time)
     {
         yield return new WaitForSeconds(time);
         Log.Debug("ExampleGetToken.GetTokenTimeRemaining()", "created: {0} | time to expiration: {1} minutes | token: {2}", _authenticationToken.Created, _authenticationToken.TimeUntilExpiration, _authenticationToken.Token);
@@ -70,14 +77,14 @@ public class ExampleGetToken : MonoBehaviour
     {
         Credentials credentials = new Credentials()
         {
-            AuthenticationToken = _authenticationToken.Token,
-            Url = _url
+            WatsonAuthenticationToken = _authenticationToken.Token,
+            Url = _conversationUrl
         };
 
         Conversation conversation = new Conversation(credentials);
         conversation.VersionDate = _conversationVersionDate;
 
-        conversation.Message(OnMessage, OnFail, _workspaceId, "hello");
+        conversation.Message(OnMessage, OnFail, _conversationWorkspaceId, "hello");
     }
 
     private void OnMessage(object resp, Dictionary<string, object> customData)
@@ -85,7 +92,7 @@ public class ExampleGetToken : MonoBehaviour
         Log.Debug("ExampleGetToken.OnMessage()", "message response: {0}", customData);
 
         //  Check token time remaining
-        Runnable.Run(GetTokenTimeRemaining(0f));
+        Runnable.Run(GetWatsonTokenTimeRemaining(0f));
     }
     private void OnFail(RESTConnector.Error error, Dictionary<string, object> customData)
     {

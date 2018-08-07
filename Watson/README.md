@@ -1,5 +1,6 @@
 # Watson APIs Unity SDK
 [![Build Status](https://travis-ci.org/watson-developer-cloud/unity-sdk.svg?branch=develop)](https://travis-ci.org/watson-developer-cloud/unity-sdk)
+[![wdc-community.slack.com](https://wdc-slack-inviter.mybluemix.net/badge.svg)](http://wdc-slack-inviter.mybluemix.net/)
 
 Use this SDK to build Watson-powered applications in Unity.
 
@@ -24,9 +25,12 @@ Use this SDK to build Watson-powered applications in Unity.
 ## Before you begin
 Ensure that you have the following prerequisites:
 
-* An IBM Cloud account. If you don't have one, [sign up][ibm_cloud_registration].
+* You need an [IBM Cloud][ibm-cloud-onboarding] account.
 * [Unity][get_unity]. You can use the **free** Personal edition.
-* Change the build settings in Unity (**File > Build Settings**) to any platform except for web player/Web GL. The Watson Developer Cloud Unity SDK does not support Unity Web Player.
+
+## Configuring Unity
+* Change the build settings in Unity (**File > Build Settings**) to any platform except for web player/Web GL. The IBM Watson SDK for Unity does not support Unity Web Player.
+* If using Unity 2018.2 or later you'll need to set Scripting Runtime Version in Build Settings to .NET 4.x equivalent. We need to access security options to enable TLS 1.2. 
 
 ## Getting the Watson SDK and adding it to Unity
 You can get the latest SDK release by clicking [here][latest_release].
@@ -60,37 +64,121 @@ The credentials for each service contain either a `username`, `password` and end
 
 ## Watson Services
 To get started with the Watson Services in Unity, click on each service below to read through each of their `README.md`'s and their codes.
-* [Alchemy Language](/Scripts/Services/AlchemyAPI/v1) **Deprecated**
+* [Assistant](/Scripts/Services/Assistant/v1)
 * [Conversation](/Scripts/Services/Conversation/v1)
 * [Discovery](/Scripts/Services/Discovery/v1)
-* [Document Conversion](/Scripts/Services/DocumentConversion/v1) **Deprecated**
-* [Language Translator](/Scripts/Services/LanguageTranslator/v2)
+* [Language Translator V2](/Scripts/Services/LanguageTranslator/v2) (deprecated)
+* [Language Translator V3](/Scripts/Services/LanguageTranslator/v3)
 * [Natural Language Classifier](/Scripts/Services/NaturalLanguageClassifier/v2)
 * [Natural Language Understanding](/Scripts/Services/NaturalLanguageUnderstanding/v1)
 * [Personality Insights](/Scripts/Services/PersonalityInsights/v3)
-* [Retrieve and Rank](/Scripts/Services/RetrieveAndRank/v1) **Deprecated**
 * [Speech to Text](/Scripts/Services/SpeechToText/v1)
 * [Text to Speech](/Scripts/Services/TextToSpeech/v1)
 * [Tone Analyzer](/Scripts/Services/ToneAnalyzer/v3)
-* [Tradeoff Analytics](/Scripts/Services/TradeoffAnalytics/v1) **Deprecated**
 * [Visual Recognition](/Scripts/Services/VisualRecognition/v3)
 
 ## Authentication
-Before you can use a service, it must be authenticated with the service instance's `username`, `password` and `url`.
+Watson services are migrating to token-based Identity and Access Management (IAM) authentication.
 
+- With some service instances, you authenticate to the API by using **[IAM](#iam)**.
+- In other instances, you authenticate by providing the **[username and password](#username-and-password)** for the service instance.
+- Visual Recognition uses a form of [API key](#api-key) only with instances created before May 23, 2018. Newer instances of Visual Recognition use [IAM](#iam).
+
+### Getting credentials
+To find out which authentication to use, view the service credentials. You find the service credentials for authentication the same way for all Watson services:
+
+1.  Go to the IBM Cloud **[Dashboard][watson-dashboard]** page.
+1.  Either click an existing Watson service instance or click **Create**.
+1.  Click **Show** to view your service credentials.
+1.  Copy the `url` and either `apikey` or `username` and `password`.
+
+In your code, you can use these values in the service constructor or with a method call after instantiating your service.
+
+### IAM
+
+Some services use token-based Identity and Access Management (IAM) authentication. IAM authentication uses a service API key to get an access token that is passed with the call. Access tokens are valid for approximately one hour and must be regenerated.
+
+You supply either an IAM service **API key** or an **access token**:
+
+- Use the API key to have the SDK manage the lifecycle of the access token. The SDK requests an access token, ensures that the access token is valid, and refreshes it if necessary.
+- Use the access token if you want to manage the lifecycle yourself. For details, see [Authenticating with IAM tokens](https://console.bluemix.net/docs/services/watson/getting-started-iam.html). If you want to switch to API key, in a coroutine, override your stored IAM credentials with an IAM API key and yield until the credentials object `HasIamTokenData()` returns `true`.
+
+#### Supplying the IAM API key
 ```cs
-using IBM.Watson.DeveloperCloud.Services.Conversation.v1;
+IEnumerator TokenExample()
+{
+    //  Create IAM token options and supply the apikey. IamUrl is the URL used to get the 
+    //  authorization token using the IamApiKey. It defaults to https://iam.bluemix.net/identity/token
+    TokenOptions iamTokenOptions = new TokenOptions()
+    {
+        IamApiKey = "<iam-api-key>",
+        IamUrl = "<iam-url>"
+    };
+
+    //  Create credentials using the IAM token options
+    _credentials = new Credentials(iamTokenOptions, "<service-url>");
+    while (!_credentials.HasIamTokenData())
+        yield return null;
+
+    _assistant = new Assistant(_credentials);
+    _assistant.VersionDate = "2018-02-16";
+    _assistant.ListWorkspaces(OnListWorkspaces, OnFail);
+}
+
+private void OnListWorkspaces(WorkspaceCollection response, Dictionary<string, object> customData)
+{
+    Log.Debug("OnListWorkspaces()", "Response: {0}", customData["json"].ToString());
+}
+
+private void OnFail(RESTConnector.Error error, Dictionary<string, object> customData)
+{
+    Log.Debug("OnFail()", "Failed: {0}", error.ToString());
+}
+```
+
+#### Supplying the access token
+```cs
+void TokenExample()
+{
+    //  Create IAM token options and supply the access token.
+    TokenOptions iamTokenOptions = new TokenOptions()
+    {
+        IamAccessToken = "<iam-access-token>"
+    };
+
+    //  Create credentials using the IAM token options
+     _credentials = new Credentials(iamTokenOptions, "<service-url");
+
+    _assistant = new Assistant(_credentials);
+    _assistant.VersionDate = "2018-02-16";
+    _assistant.ListWorkspaces(OnListWorkspaces, OnFail);
+}
+
+private void OnListWorkspaces(WorkspaceCollection response, Dictionary<string, object> customData)
+{
+    Log.Debug("OnListWorkspaces()", "Response: {0}", customData["json"].ToString());
+}
+
+private void OnFail(RESTConnector.Error error, Dictionary<string, object> customData)
+{
+    Log.Debug("OnFail()", "Failed: {0}", error.ToString());
+}
+```
+
+### Username and password
+```cs
+using IBM.Watson.DeveloperCloud.Services.Assistant.v1;
 using IBM.Watson.DeveloperCloud.Utilities;
 
 void Start()
 {
     Credentials credentials = new Credentials(<username>, <password>, <url>);
-    Conversation _conversation = new Conversation(credentials);
+    Assistant _assistant = new Assistant(credentials);
 }
 ```
 
-For services that authenticate using an apikey, you can instantiate the service instance using a `Credential` object with an `apikey` and `url`.
-
+### API key
+**Important**: This type of authentication works only with Visual Recognition instances created before May 23, 2018. Newer instances of Visual Recognition use [IAM](#iam).
 ```cs
 using IBM.Watson.DeveloperCloud.Services.VisualRecognition.v3;
 using IBM.Watson.DeveloperCloud.Utilities;
@@ -102,13 +190,14 @@ void Start()
 }
 ```
 
+
 ## Callbacks
 Success and failure callbacks are required. You can specify the return type in the callback.  
 ```cs
 private void Example()
 {
     //  Call with sepcific callbacks
-    conversation.Message(OnMessage, OnGetEnvironmentsFail, _workspaceId, "");
+    assistant.Message(OnMessage, OnGetEnvironmentsFail, _workspaceId, "");
     discovery.GetEnvironments(OnGetEnvironments, OnFail);
 }
 
@@ -142,7 +231,7 @@ Since the success callback signature is generic and the failure callback always 
 private void Example()
 {
     //  Call with generic callbacks
-    conversation.Message(OnSuccess, OnMessageFail, "<workspace-id>", "");
+    assistant.Message(OnSuccess, OnMessageFail, "<workspace-id>", "");
     discovery.GetEnvironments(OnSuccess, OnFail);
 }
 
@@ -167,7 +256,7 @@ void Example()
 {
     Dictionary<string, object> customData = new Dictionary<string, object>();
     customData.Add("foo", "bar");
-    conversation.Message(OnSuccess, OnFail, "<workspace-id>", "", customData);
+    assistant.Message(OnSuccess, OnFail, "<workspace-id>", "", customData);
 }
 
 //  Generic success callback
@@ -184,13 +273,57 @@ private void OnFail(RESTConnector.Error error, Dictionary<string, object> custom
 }
 ```
 
+## Custom Request Headers
+You can send custom request headers by adding them to the `customData` object.
+
+```cs
+void Example()
+{
+    //  Create customData object
+    Dictionary<string, object> customData = new Dictionary<string, object>();
+    //  Create a dictionary of custom headers
+    Dictionary<string, string> customHeaders = new Dictionary<string, string>();
+    //  Add to the header dictionary
+    customHeaders.Add("X-Watson-Metadata", "customer_id=some-assistant-customer-id");
+    //  Add the header dictionary to the custom data object
+    customData.Add(Constants.String.CUSTOM_REQUEST_HEADERS, customHeaders);
+
+    assistant.Message(OnSuccess, OnFail, "<workspace-id>", customData: customData);
+}
+```
+
+## Response Headers
+You can get responseheaders in the `customData` object in the callback.
+
+```cs
+void Example()
+{
+    assistant.Message(OnMessage, OnFail, "<workspace-id>");
+}
+
+private void OnMessage(object resp, Dictionary<string, object> customData)
+{
+    //  List all headers in the response headers object
+    if (customData.ContainsKey(Constants.String.RESPONSE_HEADERS))
+    {
+        foreach (KeyValuePair<string, string> kvp in customData[Constants.String.RESPONSE_HEADERS] as Dictionary<string, string>)
+        {
+            Log.Debug("ExampleCustomHeader.OnMessage()", "{0}: {1}", kvp.Key, kvp.Value);
+        }
+    }
+}
+```
+
 ## Authentication Tokens
+
+**Authenticating with the `X-Watson-Authorization-Token` header is deprecated. The token continues to work with Cloud Foundry services, but is not supported for services that use Identity and Access Management (IAM) authentication. For details see [Authenticating with IAM tokens](https://console.bluemix.net/docs/services/watson/getting-started-iam.html#iam) or the [README](#IAM) in the IBM Watson SDK you use.**
+
 You use tokens to write applications that make authenticated requests to IBM Watson™ services without embedding service credentials in every call.
 
 You can write an authentication proxy in IBM Cloud that obtains and returns a token to your client application, which can then use the token to call the service directly. This proxy eliminates the need to channel all service requests through an intermediate server-side application, which is otherwise necessary to avoid exposing your service credentials from your client application.
 
 ```cs
-using IBM.Watson.DeveloperCloud.Services.Conversation.v1;
+using IBM.Watson.DeveloperCloud.Services.Assistant.v1;
 using IBM.Watson.DeveloperCloud.Utilities;
 
 void Start()
@@ -199,7 +332,7 @@ void Start()
     {
         AuthenticationToken = <authentication-token>
     };
-    Conversation _conversation = new Conversation(credentials);
+    Assistant _assistant = new Assistant(credentials);
 }
 ```
 
@@ -223,13 +356,17 @@ private void OnGetToken(AuthenticationToken authenticationToken, string customDa
 }
 ```
 
+## Streaming outside of US South region
+Watson services have upgraded their hosts to TLS 1.2. The US South region has a TLS 1.0 endpoint that will work for streaming but if you are streaming in other regions you will need to use Unity 2018.2 and set Scripting Runtime Version in Build Settings to .NET 4.x equivalent. In lower versions of Unity you will need to create the Speech to Text instance in US South.
+
 ## Documentation
 Documentation can be found [here][documentation]. You can also access the documentation by selecting API Reference the Watson menu (**Watson -> API Reference**).
 
 ## Questions
 
 If you are having difficulties using the APIs or have a question about the IBM Watson Services, please ask a question on
-[dW Answers](https://developer.ibm.com/answers/questions/ask/?topics=watson) or [Stack Overflow](http://stackoverflow.com/questions/ask?tags=ibm-watson).
+[dW Answers](https://developer.ibm.com/answers/questions/ask/?topics=watson)
+or [Stack Overflow](http://stackoverflow.com/questions/ask?tags=ibm-watson).
 
 ## Open Source @ IBM
 Find more open source projects on the [IBM Github Page](http://ibm.github.io/).
@@ -243,37 +380,7 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 [wdc]: https://www.ibm.com/watson/developer/
 [wdc_unity_sdk]: https://github.com/watson-developer-cloud/unity-sdk
 [latest_release]: https://github.com/watson-developer-cloud/unity-sdk/releases/latest
-[ibm_cloud_registration]: http://console.bluemix.net/registration
 [get_unity]: https://unity3d.com/get-unity
-[asset_store_link]: https://www.assetstore.unity3d.com/en/#!/108831
-
-[speech_to_text]: https://console.bluemix.net/docs/services/speech-to-text/index.html
-[text_to_speech]: https://console.bluemix.net/docs/services/text-to-speech/index.html
-[language_translator]: https://console.bluemix.net/docs/services/language-translator/index.html
-[dialog]: https://console.bluemix.net/docs/services/dialog/index.html
-[natural_language_classifier]: https://console.bluemix.net/docs/services/natural-language-classifier/natural-language-classifier-overview.html
-
-[alchemy_language]: http://www.alchemyapi.com/products/alchemylanguage
-[alchemyData_news]: http://www.ibm.com/watson/developercloud/alchemy-data-news.html
-[sentiment_analysis]: http://www.alchemyapi.com/products/alchemylanguage/sentiment-analysis
-[tone_analyzer]: https://console.bluemix.net/docs/services/tone-analyzer/index.html
-[tradeoff_analytics]: https://console.bluemix.net/docs/services/tradeoff-analytics/index.html
-[conversation]: https://console.bluemix.net/docs/services/conversation/index.html
-[visual_recognition]: https://console.bluemix.net/docs/services/visual-recognition/index.html
-[personality_insights]: https://console.bluemix.net/docs/services/personality-insights/index.html
-[conversation_tooling]: https://www.ibmwatsonconversation.com
-[retrieve_and_rank]: https://console.bluemix.net/docs/services/retrieve-and-rank/index.html
-[discovery]: https://console.bluemix.net/docs/services/discovery/index.html
-[document_conversion]: https://console.bluemix.net/docs/services/document-conversion/index.html
-[expressive_ssml]: https://console.bluemix.net/docs/services/text-to-speech/http.html#expressive
-[ssml]: https://console.bluemix.net/docs/services/text-to-speech/SSML.html
-[discovery-query]: https://console.bluemix.net/docs/services/discovery/using.html
-[natural_language_understanding]: https://www.ibm.com/watson/services/natural-language-understanding/
-[nlu_models]: https://console.bluemix.net/docs/services/natural-language-understanding/customizing.html
-[nlu_entities]: https://console.bluemix.net/docs/services/natural-language-understanding/entity-types.html
-[nlu_relations]: https://console.bluemix.net/docs/services/natural-language-understanding/relations.html
-
-[dialog_service]: https://console.bluemix.net/docs/services/dialog/index.html
-[dialog_migration]: https://console.bluemix.net/docs/services/conversation/index.html
-[conversation_service]: https://console.bluemix.net/docs/services/conversation/index.html
 [documentation]: https://watson-developer-cloud.github.io/unity-sdk/
+[ibm-cloud-onboarding]: http://console.bluemix.net/registration?target=/developer/watson&cm_mmc=Display_UnitySDK-_-Developer_Innovation-_-WW_WW-_-unity_sdk_watson_dw
+[watson-dashboard]: https://console.bluemix.net/dashboard/apps?category=watson

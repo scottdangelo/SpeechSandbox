@@ -5,30 +5,6 @@ Use [Natural Language Classifier][natural_language_classifier] service to create
 ## Usage
 Classify intents in natural language.
 
-### Instantiating and authenticating the service
-Before you can send requests to the service it must be instantiated and credentials must be set.
-```cs
-using IBM.Watson.DeveloperCloud.Services.NaturalLanguageClassifier.v2;
-using IBM.Watson.DeveloperCloud.Utilities;
-
-void Start()
-{
-    Credentials credentials = new Credentials(<username>, <password>, <url>);
-    NaturalLanguageClassifier _naturalLanguageClassifier = new NaturalLanguageClassifier(credentials);
-}
-```
-
-
-### Fail handler
-These examples use a common fail handler.
-```cs
-private void OnFail(RESTConnector.Error error, Dictionary<string, object> customData)
-{
-    Log.Error("ExampleNaturalLanguageClassifier.OnFail()", "Error received: {0}", error.ToString());
-}
-```
-
-
 ### Listing Classifiers
 Returns an empty array if no classifiers are available.
 ```cs
@@ -59,6 +35,36 @@ private void Classify()
 private void OnClassify(ClassifyResult result, Dictionary<string, object> customData)
 {
     Log.Debug("ExampleNaturalLanguageClassifier.OnClassify()", "Natural Language Classifier - Classify Response: {0}", customData["json"].ToString());
+}
+```
+
+### Classifying A Collection of text
+The status must be Available before you can use the classifier to classify calls. Use GET /classifiers/{classifier_id} to retrieve the status.
+```cs
+private void ClassifyCollection()
+{
+    ClassifyCollectionInput classifyCollectionInput = new ClassifyCollectionInput()
+    {
+        collection = new List<ClassifyInput>()
+        {
+            new ClassifyInput()
+            {
+                text = <text-to-classify>
+            },
+            new ClassifyInput()
+            {
+                text = <text-to-classify>
+            }
+        }
+    };
+
+    if (!naturalLanguageClassifier.ClassifyCollection(OnClassify, OnFail, <classifier-id>, classifyCollectionInput))
+        Log.Debug("ExampleNaturalLanguageClassifier.ClassifyCollection()", "Failed to classify!");
+}
+
+private void OnClassifyCollection(ClassificationCollection result, Dictionary<string, object> customData)
+{
+    Log.Debug("ExampleNaturalLanguageClassifier.OnClassifyCollection()", "Natural Language Classifier - Classify Collection Response: {0}", customData["json"].ToString());
 }
 ```
 

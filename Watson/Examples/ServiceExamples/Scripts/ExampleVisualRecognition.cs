@@ -29,15 +29,34 @@ using IBM.Watson.DeveloperCloud.Connection;
 
 public class ExampleVisualRecognition : MonoBehaviour
 {
-    private string _apikey = null;
-    private string _url = null;
+    #region PLEASE SET THESE VARIABLES IN THE INSPECTOR
+    [Space(10)]
+    [Tooltip("The service URL (optional). This defaults to \"https://gateway.watsonplatform.net/visual-recognition/ap\"")]
+    [SerializeField]
+    private string _serviceUrl;
+    [Tooltip("The version date with which you would like to use the service in the form YYYY-MM-DD.")]
+    [SerializeField]
+    private string _versionDate;
+    [Header("CF Authentication")]
+    [Tooltip("The CF apikey (non-iam).")]
+    [SerializeField]
+    private string _apikey;
+    [Header("IAM Authentication")]
+    [Tooltip("The IAM apikey.")]
+    [SerializeField]
+    private string _iamApikey;
+    [Tooltip("The IAM url used to authenticate the apikey (optional). This defaults to \"https://iam.bluemix.net/identity/token\".")]
+    [SerializeField]
+    private string _iamUrl;
+    #endregion
 
     private VisualRecognition _visualRecognition;
-    private string _visualRecognitionVersionDate = "2016-05-20";
 
     private string _classifierID = "";
     private string _imageURL = "https://upload.wikimedia.org/wikipedia/commons/e/e9/Official_portrait_of_Barack_Obama.jpg";
-    //private string _imageTextURL = "http://i.stack.imgur.com/ZS6nH.png";
+#if TRAIN_CLASSIFIER
+    private string _coreMLDownloadPath = "";
+#endif
 
 #if DELETE_TRAINED_CLASSIFIER
     private string _classifierToDelete;
@@ -55,16 +74,48 @@ public class ExampleVisualRecognition : MonoBehaviour
     private bool _classifyPostTested = false;
     private bool _detectFacesGetTested = false;
     private bool _detectFacesPostTested = false;
+#if TRAIN_CLASSIFIER
+    private bool _getCoreMLModelTested = false;
+    private bool _isClassifierReady = false;
+#endif
 
     void Start()
     {
         LogSystem.InstallDefaultReactors();
+        Runnable.Run(CreateService());
+    }
+
+    private IEnumerator CreateService()
+    {
+        Credentials credentials = null;
+        if (!string.IsNullOrEmpty(_apikey))
+        {
+            //  Authenticate using apikey
+            credentials = new Credentials(_apikey, _serviceUrl);
+        }
+        else if (!string.IsNullOrEmpty(_iamApikey))
+        {
+            //  Authenticate using iamApikey
+            TokenOptions tokenOptions = new TokenOptions()
+            {
+                IamApiKey = _iamApikey,
+                IamUrl = _iamUrl
+            };
+
+            credentials = new Credentials(tokenOptions, _serviceUrl);
+
+            //  Wait for tokendata
+            while (!credentials.HasIamTokenData())
+                yield return null;
+        }
+        else
+        {
+            throw new WatsonException("Please provide either CF apikey or IAM apikey to authenticate the service.");
+        }
 
         //  Create credential and instantiate service
-        Credentials credentials = new Credentials(_apikey, _url);
-
         _visualRecognition = new VisualRecognition(credentials);
-        _visualRecognition.VersionDate = _visualRecognitionVersionDate;
+        _visualRecognition.VersionDate = _versionDate;
 
         Runnable.Run(Examples());
     }
@@ -73,7 +124,7 @@ public class ExampleVisualRecognition : MonoBehaviour
     {
         //          Get all classifiers
         Log.Debug("ExampleVisualRecognition.Examples()", "Attempting to get all classifiers");
-        if (!_visualRecognition.GetClassifiers(OnGetClassifiers, OnFail))
+        if (!_visualRecognition.GetClassifiersBrief(OnGetClassifiers, OnFail))
             Log.Debug("ExampleVisualRecognition.GetClassifiers()", "Failed to get all classifiers!");
 
         while (!_getClassifiersTested)
@@ -138,11 +189,16 @@ public class ExampleVisualRecognition : MonoBehaviour
             yield return null;
 
 #if DELETE_TRAINED_CLASSIFIER
-        #region Delay
-        Runnable.Run(Delay(_delayTime));
-        while (_isWaitingForDelay)
+        Runnable.Run(IsClassifierReady(_classifierToDelete));
+        while (!_isClassifierReady)
             yield return null;
-        #endregion
+
+        //  Download Core ML Model
+        Log.Debug("ExampleVisualRecognition.RunTest()", "Attempting to get Core ML Model");
+        if (!_visualRecognition.GetCoreMLModel(OnGetCoreMLModel, OnFail, _classifierID))
+            Log.Debug("TestVisualRecognition.GetCoreMLModel()", "Failed to get core ml model!");
+        while (!_getCoreMLModelTested)
+            yield return null;
 
         //          Delete classifier by ID
         Log.Debug("ExampleVisualRecognition.Examples()", "Attempting to delete classifier");
@@ -156,7 +212,7 @@ public class ExampleVisualRecognition : MonoBehaviour
         Log.Debug("ExampleVisualRecognition.Examples()", "Visual Recogition tests complete");
     }
 
-    private void OnGetClassifiers(GetClassifiersTopLevelBrief classifiers, Dictionary<string, object> customData)
+    private void OnGetClassifiers(ClassifiersBrief classifiers, Dictionary<string, object> customData)
     {
         Log.Debug("ExampleVisualRecognition.OnGetClassifiers()", "VisualRecognition - GetClassifiers Response: {0}", customData["json"].ToString());
 
@@ -164,7 +220,7 @@ public class ExampleVisualRecognition : MonoBehaviour
     }
 
 #if DELETE_TRAINED_CLASSIFIER
-    private void OnGetClassifier(GetClassifiersPerClassifierVerbose classifier, Dictionary<string, object> customData)
+    private void OnGetClassifier(ClassifierVerbose classifier, Dictionary<string, object> customData)
     {
         Log.Debug("ExampleVisualRecognition.OnGetClassifier()", "VisualRecognition - GetClassifier Response: {0}", customData["json"].ToString());
         _getClassifierTested = true;
@@ -180,7 +236,7 @@ public class ExampleVisualRecognition : MonoBehaviour
 #endif
 
 #if TRAIN_CLASSIFIER
-    private void OnTrainClassifier(GetClassifiersPerClassifierVerbose classifier, Dictionary<string, object> customData)
+    private void OnTrainClassifier(ClassifierVerbose classifier, Dictionary<string, object> customData)
     {
         Log.Debug("ExampleVisualRecognition.OnTrainClassifier()", "{0}", customData["json"].ToString());
 
@@ -192,47 +248,76 @@ public class ExampleVisualRecognition : MonoBehaviour
     }
 #endif
 
-    private void OnClassifyGet(ClassifyTopLevelMultiple classify, Dictionary<string, object> customData)
+    private void OnClassifyGet(ClassifiedImages classify, Dictionary<string, object> customData)
     {
         Log.Debug("ExampleVisualRecognition.OnClassifyGet()", "{0}", customData["json"].ToString());
         _classifyGetTested = true;
 
     }
 
-    private void OnClassifyPost(ClassifyTopLevelMultiple classify, Dictionary<string, object> customData)
+    private void OnClassifyPost(ClassifiedImages classify, Dictionary<string, object> customData)
     {
         Log.Debug("ExampleVisualRecognition.OnClassifyPost()", "{0}", customData["json"].ToString());
         _classifyPostTested = true;
     }
 
-    private void OnDetectFacesGet(FacesTopLevelMultiple multipleImages, Dictionary<string, object> customData)
+    private void OnDetectFacesGet(DetectedFaces multipleImages, Dictionary<string, object> customData)
     {
         Log.Debug("ExampleVisualRecognition.OnDetectFacesGet()", "{0}", customData["json"].ToString());
         _detectFacesGetTested = true;
     }
 
-    private void OnDetectFacesPost(FacesTopLevelMultiple multipleImages, Dictionary<string, object> customData)
+    private void OnDetectFacesPost(DetectedFaces multipleImages, Dictionary<string, object> customData)
     {
         Log.Debug("ExampleVisualRecognition.OnDetectFacesPost()", "{0}", customData["json"].ToString());
         _detectFacesPostTested = true;
     }
 
-    #region Delay
 #if DELETE_TRAINED_CLASSIFIER
-    //  Introducing a delay because of a known issue with Visual Recognition where newly created classifiers 
-    //  will disappear without being deleted if a delete is attempted less than ~10 seconds after creation.
-    private float _delayTime = 15f;
-    private bool _isWaitingForDelay = false;
-
-    private IEnumerator Delay(float delayTime)
+    private void OnGetCoreMLModel(byte[] resp, Dictionary<string, object> customData)
     {
-        _isWaitingForDelay = true;
-        Log.Debug("ExampleVisualRecognition.Delay()", "Delaying for {0} seconds....", delayTime);
-        yield return new WaitForSeconds(delayTime);
-        _isWaitingForDelay = false;
+        Log.Debug("ExampleVisualRecognition.OnGetCoreMLModel()", "SUCCESS!");
+        _getCoreMLModelTested = true;
     }
 #endif
-    #endregion
+
+#if DELETE_TRAINED_CLASSIFIER
+#region Is Classifier Ready
+    //  Checking if classifier is ready before deletion due to a known bug in the Visual Recognition service where
+    //  if a classifier is deleted before it is `ready` or `failed` the classifier will still exist in object storage
+    //  but will be inaccessable to the user.
+    private IEnumerator IsClassifierReady(string classifierId)
+    {
+        Log.Debug("TestVisualRecognition.IsClassifierReady()", "Checking if classifier is ready in 15 seconds...");
+
+        yield return new WaitForSeconds(15f);
+
+        Dictionary<string, object> customData = new Dictionary<string, object>();
+        customData.Add("classifierId", classifierId);
+        if (!_visualRecognition.GetClassifier(OnCheckIfClassifierIsReady, OnFailCheckingIfClassifierIsReady, classifierId))
+            IsClassifierReady(classifierId);
+    }
+
+    private void OnCheckIfClassifierIsReady(ClassifierVerbose response, Dictionary<string, object> customData)
+    {
+        Log.Debug("TestVisualRecognition.IsClassifierReady()", "Classifier status is {0}", response.status);
+
+        if (response.status == "ready" || response.status == "failed")
+        {
+            _isClassifierReady = true;
+        }
+        else
+        {
+
+            Runnable.Run(IsClassifierReady(response.classifier_id));
+        }
+    }
+    private void OnFailCheckingIfClassifierIsReady(RESTConnector.Error error, Dictionary<string, object> customData)
+    {
+        IsClassifierReady(_classifierToDelete);
+    }
+#endregion
+#endif
 
     private void OnFail(RESTConnector.Error error, Dictionary<string, object> customData)
     {
