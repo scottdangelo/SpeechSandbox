@@ -46,6 +46,8 @@ public class SpeechSandboxStreaming : MonoBehaviour
 
     private SpeechToText _speechToText;
     private Conversation _conversation;
+    private LanguageTranslator _language_translator;
+    private string _translationModel = "ja-en";
 
     private IEnumerator createServices(){
 
@@ -69,6 +71,37 @@ public class SpeechSandboxStreaming : MonoBehaviour
 
             while (!stt_credentials.HasIamTokenData())
                 yield return null;
+        }
+        else
+        {
+            throw new WatsonException("Please provide either username and password or IAM apikey to authenticate the service.");
+        }
+
+        Credentials lang_credentials = null;
+        //  Create credential and instantiate service
+        if (!string.IsNullOrEmpty(saveCredentials.translatorUsername) && !string.IsNullOrEmpty(saveCredentials.translatorPassword))
+        {
+            //  Authenticate using username and password
+            lang_credentials = new Credentials(saveCredentials.translatorUsername, saveCredentials.translatorPassword, saveCredentials.translatorServiceUrl);
+        }
+        else if (!string.IsNullOrEmpty(saveCredentials.translatorIamApikey))
+        {
+            Log.Debug("createServices()", "IAM key", "key {0}", saveCredentials.translatorIamApikey);
+
+            //  Authenticate using iamApikey
+            TokenOptions tokenOptions = new TokenOptions()
+            {
+                IamApiKey = saveCredentials.translatorIamApikey,
+                IamUrl = saveCredentials.translatorIamUrl
+            };
+
+            lang_credentials = new Credentials(tokenOptions, saveCredentials.translatorServiceUrl);
+
+
+            while (!lang_credentials.HasIamTokenData())
+                yield return null;
+
+            Log.Debug("createServices()", "lang_creds", " {0}", lang_credentials);
         }
         else
         {
@@ -101,11 +134,13 @@ public class SpeechSandboxStreaming : MonoBehaviour
             throw new WatsonException("Please provide either username and password or IAM apikey to authenticate the service.");
         }
 
-
         _speechToText = new SpeechToText(stt_credentials);
         _conversation = new Conversation(asst_credentials);
+        _language_translator = new LanguageTranslator(translatorVersionDate, lang_credentials);
 
+        _speechToText.RecognizeModel = "ja-JP_BroadbandModel";
         _conversation.VersionDate = saveCredentials.assistantVersionDate;
+
         Active = true;
 
         StartRecording();
@@ -179,6 +214,21 @@ public class SpeechSandboxStreaming : MonoBehaviour
         Log.Error("ExampleConversation.OnFail()", "Error received: {0}", error.ToString());
     }
 
+    private void Translate(string text)
+    {
+        Log.Debug("Translate()", "pre-translation: {0}", text);
+        _language_translator.GetTranslation(OnTranslate, OnFail, text, _translationModel);
+
+
+    }
+
+    private void OnTranslate(Translations response, Dictionary<string, object> customData)
+    {
+        string RetField = response.translations[0].translation;
+        Log.Debug("OnTranslate()", "post-translation: {0}" , RetField);
+        _conversation.Message(OnMessage, OnFail, saveCredentials.assistantWorkspaceId, RetField);
+    }
+
     private IEnumerator RecordingHandler()
     {
         Log.Debug("ExampleStreaming.RecordingHandler()", "devices: {0}", Microphone.devices);
@@ -249,7 +299,7 @@ public class SpeechSandboxStreaming : MonoBehaviour
                     {
                         string text = alt.transcript;
                         Debug.Log("Result: " + text + " Confidence: " + alt.confidence);
-                        _conversation.Message(OnMessage, OnFail, saveCredentials.assistantWorkspaceId, text);
+                        Translate(text);
                     }
                 }
 
